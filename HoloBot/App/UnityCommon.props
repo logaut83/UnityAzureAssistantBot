@@ -1,0 +1,11 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <UnityInstallationDir>C:\Program Files\Unity552f1\Editor\</UnityInstallationDir>
+        <UnityWSASolutionName>HoloBot</UnityWSASolutionName>
+        <UnityWSASolutionDir>D:\Profiles\lgautier\Documents\UnityProjects\Sopra\HoloBot-master\App\</UnityWSASolutionDir>
+        <UnityWSAPlayerDir>C:\Program Files\Unity552f1\Editor\Data\PlaybackEngines\MetroSupport\</UnityWSAPlayerDir>
+        <UnityWSAToolsDir>$(UnityWSASolutionDir)Unity\Tools\</UnityWSAToolsDir>
+        <UnityProjectDir>D:\Profiles\lgautier\Documents\UnityProjects\Sopra\HoloBot-master\</UnityProjectDir>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+</Project>

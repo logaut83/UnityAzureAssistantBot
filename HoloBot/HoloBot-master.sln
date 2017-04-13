@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2017
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HoloBot-master", "HoloBot-master.csproj", "{831DB76B-8C7B-E4F2-6C12-7F67BD8E89A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HoloBot-master.Editor", "HoloBot-master.Editor.csproj", "{5BD8C246-FF60-2684-336F-84E5B65C17DE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{831DB76B-8C7B-E4F2-6C12-7F67BD8E89A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{831DB76B-8C7B-E4F2-6C12-7F67BD8E89A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{831DB76B-8C7B-E4F2-6C12-7F67BD8E89A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{831DB76B-8C7B-E4F2-6C12-7F67BD8E89A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BD8C246-FF60-2684-336F-84E5B65C17DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BD8C246-FF60-2684-336F-84E5B65C17DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BD8C246-FF60-2684-336F-84E5B65C17DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BD8C246-FF60-2684-336F-84E5B65C17DE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

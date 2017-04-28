@@ -209,13 +209,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="D:\Profiles\lgautier\Documents\UnityProjects\Sopra\HoloBot-master\App\GeneratedProjects\UWP\Assembly-CSharp\Assembly-CSharp.csproj">
-      <Project>{2d7d02d5-2918-48c4-a9c8-fb59c71a2e84}</Project>
+    <ProjectReference Include="D:\Profiles\lgautier\Documents\UnityProjects\UnityAzureAssistantBot\HoloBot\App\GeneratedProjects\UWP\Assembly-CSharp\Assembly-CSharp.csproj">
+      <Project>{2c9d2179-3c46-4def-8288-760e83cec6ae}</Project>
       <Name>Assembly-CSharp</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="D:\Profiles\lgautier\Documents\UnityProjects\Sopra\HoloBot-master\App\GeneratedProjects\UWP\Assembly-CSharp-firstpass\Assembly-CSharp-firstpass.csproj">
-      <Project>{9465c557-77b5-4ea4-8db5-f7f6772fde57}</Project>
+    <ProjectReference Include="D:\Profiles\lgautier\Documents\UnityProjects\UnityAzureAssistantBot\HoloBot\App\GeneratedProjects\UWP\Assembly-CSharp-firstpass\Assembly-CSharp-firstpass.csproj">
+      <Project>{ef69bf8d-3ee7-4e1f-acf7-bb4b8b061ef8}</Project>
       <Name>Assembly-CSharp-firstpass</Name>
       <Private>False</Private>
     </ProjectReference>

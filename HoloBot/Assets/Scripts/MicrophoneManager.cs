@@ -5,8 +5,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Windows.Speech;
 using HoloToolkit.Unity;
-using MakerShowBotTestClient;
 using UnityEngine.Networking;
+using System.Collections.Generic;
+using System.Xml.Linq;
+using System.IO;
+using System;
 
 #if WINDOWS_UWP
 using Newtonsoft.Json;
@@ -20,15 +23,8 @@ using Newtonsoft.Json.Linq;
 public class MicrophoneManager : MonoBehaviour
 {
 
-    //[Tooltip("A text area for the recognizer to display the recognized strings.")]
-    //public Text DictationDisplay;
-
-    private DictationRecognizer dictationRecognizer;
-    private StringBuilder textSoFar;
-
     // Use this string to cache the text currently displayed in the text box.
     public Animator animator;
-    public TextToSpeechManager MyTTS;
     public AudioSource selectedSource;
     //public Text captions;
     public CaptionsManager captionsManager;
@@ -36,7 +32,6 @@ public class MicrophoneManager : MonoBehaviour
 
     // Using an empty string specifies the default microphone. 
     private static string deviceName = string.Empty;
-    //private int samplingRate;
     private const int messageLength = 10;
     //private BotService tmsBot = new BotService();
     private AudioSource[] audioSources;
@@ -47,30 +42,24 @@ public class MicrophoneManager : MonoBehaviour
     private string endPoint;
     public GameObject cube;
 
+    private int samplingRate;
+
     private string luisValue;
+
+    string requestData;
+
+
+    private string accessToken;
+
+    private string requestUri = "https://speech.platform.bing.com/synthesize";
+    private string sttUri = "https://speech.platform.bing.com/recognize";
+    private string accessUri = "https://api.cognitive.microsoft.com/sts/v1.0/issueToken";
+
+    public string apiKey = "efef3982be3844b5ac6483c8d3a3683d";
+
 
     void Awake()
     {
-        //animator = GetComponent<Animator>();
-       
-        // Create a new DictationRecognizer and assign it to dictationRecognizer variable.
-        dictationRecognizer = new DictationRecognizer();
-
-        // Register for dictationRecognizer.DictationHypothesis and implement DictationHypothesis below
-        // This event is fired while the user is talking. As the recognizer listens, it provides text of what it's heard so far.
-        dictationRecognizer.DictationHypothesis += DictationRecognizer_DictationHypothesis;
-
-        // Register for dictationRecognizer.DictationResult and implement DictationResult below
-        // This event is fired after the user pauses, typically at the end of a sentence. The full recognized string is returned here.
-        dictationRecognizer.DictationResult += DictationRecognizer_DictationResult;
-
-        // Register for dictationRecognizer.DictationComplete and implement DictationComplete below
-        // This event is fired when the recognizer stops, whether from Stop() being called, a timeout occurring, or some other error.
-        dictationRecognizer.DictationComplete += DictationRecognizer_DictationComplete;
-
-        // Register for dictationRecognizer.DictationError and implement DictationError below
-        // This event is fired when an error occurs.
-        dictationRecognizer.DictationError += DictationRecognizer_DictationError;
 
         audioSources = this.GetComponents<AudioSource>();
         foreach (AudioSource a in audioSources)
@@ -79,29 +68,20 @@ public class MicrophoneManager : MonoBehaviour
             {
                 ttsAudioSrc = a;
             }
-            
+
             if ((a.clip != null) && (a.clip.name == "Ping"))
             {
                 selectedSource = a;
             }
         }
         // Query the maximum frequency of the default microphone. Use 'unused' to ignore the minimum frequency.
-        //int unused;
-        //Microphone.GetDeviceCaps(deviceName, out unused, out samplingRate);
-
-        // Use this string to cache the text currently displayed in the text box.
-        textSoFar = new StringBuilder();
+        int unused;
+        Microphone.GetDeviceCaps(deviceName, out unused, out samplingRate);
 
         captionsManager.SetCaptionsText("");
 
         //billboard.enabled = false;
-/*
-#if WINDOWS_UWP
-        var startTask = tmsBot.StartConversation();
-        startTask.Wait();
-        // startTask.Result;
-#endif
-*/
+
     }
 
     void Start()
@@ -110,6 +90,8 @@ public class MicrophoneManager : MonoBehaviour
         endPoint = "https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/e513bafa-d3af-47bc-8233-ff76814f3982?subscription-key=735f7ac9699444df82a31a21b7204fcd&timezoneOffset=0.0&verbose=true&q=";
         result = "";
         requestText = "";
+        captionsManager.SetCaptionsText("Bienvenue");
+        StartCoroutine(GetAccessToken());
     }
 
     void Update()
@@ -139,213 +121,28 @@ public class MicrophoneManager : MonoBehaviour
     /// </summary>
     void OnGazeEnter()
     {
-        // Don't activate speech recognition if the recognizer is already running
-        if (dictationRecognizer.Status != SpeechSystemStatus.Running)
+        if (!Microphone.IsRecording(deviceName))
         {
-            // Don't activate speech recognition if the speech synthesizer's audio source
-            // is still in active playback mode
-            if (!ttsAudioSrc.isPlaying)
-            {
-                //captionsManager.ToggleKeywordRecognizer(false);
-                if (selectedSource != null)
-                {
-                    selectedSource.Play();
-                }
-                //animator.Play("Idle");
-                //StartCoroutine(CoStartRecording());
-                StartRecording();
-            }
+            audioSources[0].clip = Microphone.Start(deviceName, true, 10, samplingRate);
+            cube.GetComponent<Renderer>().material.color = Color.red;
         }
     }
 
-    //IEnumerator CoStartRecording()
-    //{
-    //    yield return new WaitForSeconds(1f);
-    //    StartRecording();
-    //}
-
-    //void OnGazeLeave()
-    //{
-    //    StopRecording();
-    //    //captionsManager.ToggleKeywordRecognizer(true);
-    //}
-
-    /// <summary>
-    /// Turns on the dictation recognizer and begins recording audio from the default microphone.
-    /// </summary>
-    /// <returns>The audio clip recorded from the microphone.</returns>
-    public void StartRecording()
+    void OnGazeLeave()
     {
-        // Shutdown the PhraseRecognitionSystem. This controls the KeywordRecognizers
-        //PhraseRecognitionSystem.Shutdown();
-        //animator.Stop();
-
-        // Start dictationRecognizer
-        dictationRecognizer.Start();
-
-        //DictationDisplay.text = "Dictation is starting. It may take time to display your text the first time, but begin speaking now...";
-
-        // Start recording from the microphone for 10 seconds
-        //return Microphone.Start(deviceName, false, messageLength, samplingRate);
-
-        Debug.Log("Dictation Recognizer is now " + ((dictationRecognizer.Status == SpeechSystemStatus.Running) ? "on" : "off"));
-    }
-
-    /// <summary>
-    /// Ends the recording session.
-    /// </summary>
-    public void StopRecording()
-    {
-        // Check if dictationRecognizer.Status is Running and stop it if so
-        if (dictationRecognizer.Status == SpeechSystemStatus.Running)
-        {
-            dictationRecognizer.Stop();
-        }
-
-        //animator.Play("Idle");
-
-        //Microphone.End(deviceName);
-
-        //StartCoroutine("RestartSpeechSystem");
-
-        Debug.Log("Dictation Recognizer is now " + ((dictationRecognizer.Status == SpeechSystemStatus.Running) ? "on" : "off"));
-    }
-
-    /// <summary>
-    /// This event is fired while the user is talking. As the recognizer listens, it provides text of what it's heard so far.
-    /// </summary>
-    /// <param name="text">The currently hypothesized recognition.</param>
-    private void DictationRecognizer_DictationHypothesis(string text)
-    {
-        // Set DictationDisplay text to be textSoFar and new hypothesized text
-        // We don't want to append to textSoFar yet, because the hypothesis may have changed on the next event
-        //DictationDisplay.text = textSoFar.ToString() + " " + text + "...";
-    }
-
-    // This event handler's code only works in UWP (i.e. HoloLens)
-#if WINDOWS_UWP
-    /// <summary>
-    /// This event is fired after the user pauses, typically at the end of a sentence. The full recognized string is returned here.
-    /// </summary>
-    /// <param name="text">The text that was heard by the recognizer.</param>
-    /// <param name="confidence">A representation of how confident (rejected, low, medium, high) the recognizer is of this recognition.</param>
-    private async void DictationRecognizer_DictationResult(string text, ConfidenceLevel confidence)
-    {
-        StopRecording();
-
-        // Append textSoFar with latest text
-        textSoFar.Append(text);
-        requestText = textSoFar.ToString();
-
-        // Set DictationDisplay text to be textSoFar
-        //DictationDisplay.text = textSoFar.ToString();
-
-        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-        {
-            // Display captions for the question
-            captionsManager.SetCaptionsText(text);
-        }, false); 
-
+        Microphone.End(deviceName);
         StartCoroutine(GetText());
-        /*
-        string msg = text;
-        string result = "I'm sorry, I'm not sure how to answer that";
 
-        if (await tmsBot.SendMessage(msg))
-        {
-            ConversationMessages messages = await tmsBot.GetMessages();
-            for (int i = 1; i < messages.messages.Length; i++)
-            {
-                result = messages.messages[i].text;
-            }
-        }
-        
 
-        //animator.Play("Happy");
-        MyTTS.SpeakText(result);
-
-        UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-        {
-            // Display captions for the question
-            captionsManager.SetCaptionsText(result);
-        }, false);
-        */
     }
 
-#else
-
-    /// <summary>
-    /// This event is fired after the user pauses, typically at the end of a sentence. The full recognized string is returned here.
-    /// </summary>
-    /// <param name="text">The text that was heard by the recognizer.</param>
-    /// <param name="confidence">A representation of how confident (rejected, low, medium, high) the recognizer is of this recognition.</param>
-    private void DictationRecognizer_DictationResult(string text, ConfidenceLevel confidence)
-    {
-        StopRecording();
-        // Append textSoFar with latest text
-        textSoFar.Append(text);
-        requestText = textSoFar.ToString();
-        captionsManager.SetCaptionsText(text);
-
-        //animator.Play("Happy"); // TO DO: Need to fix, not working yet
-        MyTTS.SpeakText(text);
-
-        // Set DictationDisplay text to be textSoFar
-        //DictationDisplay.text = textSoFar.ToString();
-    }
-#endif
-    
-    /// <summary>
-    /// This event is fired when the recognizer stops, whether from Stop() being called, a timeout occurring, or some other error.
-    /// Typically, this will simply return "Complete". In this case, we check to see if the recognizer timed out.
-    /// </summary>
-    /// <param name="cause">An enumerated reason for the session completing.</param>
-    private void DictationRecognizer_DictationComplete(DictationCompletionCause cause)
-    {
-        // If Timeout occurs, the user has been silent for too long.
-        // With dictation, the default timeout after a recognition is 20 seconds.
-        // The default timeout with initial silence is 5 seconds.
-        if (cause == DictationCompletionCause.TimeoutExceeded)
-        {
-            //Microphone.End(deviceName);
-
-            //DictationDisplay.text = "Dictation has timed out. Please press the record button again.";
-            //SendMessage("ResetAfterTimeout");
-        }
-    }
-
-    /// <summary>
-    /// This event is fired when an error occurs.
-    /// </summary>
-    /// <param name="error">The string representation of the error reason.</param>
-    /// <param name="hresult">The int representation of the hresult.</param>
-    private void DictationRecognizer_DictationError(string error, int hresult)
-    {
-        // Set DictationDisplay text to be the error string
-        //DictationDisplay.text = error + "\nHRESULT: " + hresult;
-    }
-
-    //private IEnumerator RestartSpeechSystem()
-    //{
-    //    while (dictationRecognizer != null && dictationRecognizer.Status == SpeechSystemStatus.Running)
-    //    {
-    //        yield return null;
-    //    }
-    //    if (PhraseRecognitionSystem.Status == SpeechSystemStatus.Stopped)
-    //    {
-    //        PhraseRecognitionSystem.Restart();
-    //    }
-
-//    //keywordToStart.StartKeywordRecognizer();
-//    //captionsManager.ToggleKeywordRecognizer(true);
-//}
 
     public void OnClicDaButtonHello()
     {
         requestText = "hello";
         cube.GetComponent<Renderer>().material.color = Color.blue;
 #if WINDOWS_UWP
-        StartCoroutine(GetText());
+        StartCoroutine(GetTextLuis());
 #endif
 
     }
@@ -355,7 +152,7 @@ public class MicrophoneManager : MonoBehaviour
         requestText = "lance la demo 1";
         cube.GetComponent<Renderer>().material.color = Color.magenta;
 #if WINDOWS_UWP
-        StartCoroutine(GetText());
+        StartCoroutine(GetTextLuis());
 #endif
 
     }
@@ -365,13 +162,13 @@ public class MicrophoneManager : MonoBehaviour
         requestText = "oaizudapzpadup";
         cube.GetComponent<Renderer>().material.color = Color.yellow;
 #if WINDOWS_UWP
-        StartCoroutine(GetText());
+        StartCoroutine(GetTextLuis());
 #endif
 
     }
 
 #if WINDOWS_UWP
-    IEnumerator GetText()
+    IEnumerator GetTextLuis()
     {
 
         cube.GetComponent<Renderer>().material.color = Color.magenta;
@@ -393,13 +190,14 @@ public class MicrophoneManager : MonoBehaviour
         switch (luisIntent) {
 
             case "gestionMenu":
-                result = "You are in Gestion menu";
+                result = "Tu es dans la Gestion du menu, je lance la démo numéro une";
+                StartCoroutine(GetAudio());
                 UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                 {
                     // Display captions for the question
                     captionsManager.SetCaptionsText(result);
                 }, false);
-                MyTTS.SpeakText(result);
+                //MyTTS.SpeakText(result);
                 cube.GetComponent<Renderer>().material.color = Color.green;
                 if(luisReturnQuery.SelectToken("entities[0]") != null)
                 {
@@ -418,14 +216,14 @@ public class MicrophoneManager : MonoBehaviour
                 }
                 break;
             case "None":
-                result = "i don't understand what you are saying";
+                result = "Je n'ai pas compris";
                 UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                 {
                     // Display captions for the question
                     captionsManager.SetCaptionsText(result);
                 }, false);
                 cube.GetComponent<Renderer>().material.color = Color.red;
-                MyTTS.SpeakText(result);
+                //MyTTS.SpeakText(result);
                 //WindowsVoice.theVoice.speak("I don't understand what you are saying");
                 break;
 
@@ -450,5 +248,141 @@ public class MicrophoneManager : MonoBehaviour
         }
     }
 #endif
+
+
+    IEnumerator GetAccessToken()
+    {
+        UnityWebRequest www = UnityWebRequest.Post(accessUri, apiKey);
+
+        www.SetRequestHeader("Ocp-Apim-Subscription-Key", apiKey);
+        yield return www.Send();
+        yield return new WaitForSeconds(1);
+        byte[] results = www.downloadHandler.data;
+        accessToken = Encoding.UTF8.GetString(results);
+        yield return Encoding.UTF8.GetString(results);
+        Debug.Log(www.responseCode);
+    }
+
+    IEnumerator GetAudio()
+    {
+        cube.GetComponent<Renderer>().material.color = Color.black;
+        Dictionary<string, string> headers = new Dictionary<string, string>();
+        headers.Add("Content-type", "application/ssml+xml");
+        headers.Add("Ocp-Apim-Subscription-Key", apiKey);
+        headers.Add("X-Microsoft-OutputFormat", "riff-16khz-16bit-mono-pcm");
+        headers.Add("Authorization", "Bearer " + accessToken);
+        headers.Add("X-Search-AppId", "07D3234E49CE426DAA29772419F436CA");
+        headers.Add("X-Search-ClientID", "1ECFAE91408841A480F00935DC390960");
+        headers.Add("User-Agent", "BingSpeechDemo");
+
+        requestData = GenerateSsml("fr-FR", "Male", "Microsoft Server Speech Text to Speech Voice (fr-FR, Paul, Apollo)", result);
+
+        Debug.Log("requestData : " + requestData);
+
+
+        Encoding encode = Encoding.UTF8;
+        byte[] unicodeBytes = encode.GetBytes(requestData);
+        WWW wwwReq = new WWW(requestUri, unicodeBytes, headers);
+        yield return wwwReq;
+
+        Debug.Log(wwwReq.error);
+        ttsAudioSrc.clip = WWWAudioExtensions.GetAudioClip(wwwReq, false, false, AudioType.WAV);
+        ttsAudioSrc.Play();
+
+
+
+    }
+
+    IEnumerator GetText()
+    {
+        captionsManager.SetCaptionsText("Get text");
+        string sttUriSend = sttUri;
+        sttUriSend += @"?scenarios=smd";                                  // websearch is the other main option.
+        sttUriSend += @"&appid=D4D52672-91D7-4C74-8AD8-42B1D98141A5";     // You must use this ID.
+        sttUriSend += @"&locale=fr-FR";                                   // We support several other languages.  Refer to README file.
+        sttUriSend += @"&device.os=wp7";
+        sttUriSend += @"&version=3.0";
+        sttUriSend += @"&format=json";
+        sttUriSend += @"&instanceid=565D69FF-E928-4B7E-87DA-9A750B96D9E3";
+        sttUriSend += @"&requestid=" + Guid.NewGuid().ToString();
+
+        Dictionary<string, string> headers = new Dictionary<string, string>();
+        headers.Add("Content-type", @"audio/wav; codec=""audio/pcm""; samplerate=16000");
+        headers.Add("Host", @"speech.platform.bing.com");
+        headers.Add("Accept", @"application/json;text/xml");
+        headers.Add("Authorization", "Bearer " + accessToken);
+
+
+        cube.GetComponent<Renderer>().material.color = Color.blue;
+
+        SavWav.Save("speechWav", audioSources[0].clip);
+
+        string audioFile = Path.Combine(Application.persistentDataPath, "speechWav.wav");
+
+
+
+        Encoding encode = Encoding.UTF8;
+        byte[] fileData = null;
+        using (FileStream fs = new FileStream(audioFile, FileMode.Open, FileAccess.Read))
+        {
+            var binaryReader = new BinaryReader(fs);
+            fileData = binaryReader.ReadBytes((int)fs.Length);
+        }
+
+
+        WWW wwwReq = new WWW(sttUriSend, fileData, headers);
+        yield return wwwReq;
+
+#if WINDOWS_UWP
+        JObject ReturnQuery = JObject.Parse(wwwReq.text);
+        string textDit = ReturnQuery.SelectToken("results[0].name").ToString();
+
+        Debug.Log(ReturnQuery.SelectToken("results[0]"));
+        Debug.Log(ReturnQuery.SelectToken("results[1]"));
+
+        captionsManager.SetCaptionsText(textDit);
+        requestText = textDit;
+        StartCoroutine(GetTextLuis());
+        if (textDit == "")
+        {
+            captionsManager.SetCaptionsText("Rien compris");
+        }
+#endif
+
+        if (wwwReq.error != null)
+            captionsManager.SetCaptionsText(wwwReq.error);
+        
+
+        yield return 0;
+    }
+
+    private string GenerateSsml(string locale, string gender, string name, string text)
+    {
+        var ssmlDoc = new XDocument(
+                          new XElement("speak",
+                              new XAttribute("version", "1.0"),
+                              new XAttribute(XNamespace.Xml + "lang", "en-US"),
+                              new XElement("voice",
+                                  new XAttribute(XNamespace.Xml + "lang", locale),
+                                  new XAttribute(XNamespace.Xml + "gender", gender),
+                                  new XAttribute("name", name),
+                                  text)));
+        return ssmlDoc.ToString();
+    }
+
+    public void GetAccessTokenBut()
+    {
+        StartCoroutine(GetAccessToken());
+    }
+
+    public void GetAudioClip()
+    {
+        StartCoroutine(GetAudio());
+    }
+
+    public void GetTextSTT()
+    {
+        StartCoroutine(GetText());
+    }
 
 }

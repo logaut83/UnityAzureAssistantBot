@@ -8,8 +8,8 @@
 HoloBot.sln: modified
 GeneratedProjects\UWP\Assembly-CSharp\project.json: 4FCF72A4D5EDB37E24C206A7BCFE7AF1
 GeneratedProjects\UWP\Assembly-CSharp-firstpass\project.json: 4FCF72A4D5EDB37E24C206A7BCFE7AF1
-HoloBot\App.cs: 510846A4C4FA9BDC4A760DD124284A3F
-HoloBot\HoloBot.csproj: 77F47B1737C8977463AEB87986B0A623
+HoloBot\App.cs: modified
+HoloBot\HoloBot.csproj: 8BC9156345341EFCA4EA49F7774398DA
 HoloBot\HoloBot.csproj.user: modified
 HoloBot\Package.appxmanifest: FEFDA5DB60ECE9D98A0A9409CF654907
 HoloBot\project.json: 1D02BC64BAC0D041019673A1C4C51737
@@ -19,5 +19,5 @@ HoloBot\Assets\Square44x44Logo.scale-200.png: 6C6EF27184ABE9D870A9D564953775DE
 HoloBot\Assets\Square44x44Logo.targetsize-24_altform-unplated.png: 156637F7B5363E983E7A46D8E533A23D
 HoloBot\Assets\StoreLogo.png: 90BD194CA4A7CFFF3E8B8222229857FB
 HoloBot\Assets\Wide310x150Logo.scale-200.png: C96846A80DF667F87355569CD816192D
-HoloBot\Properties\AssemblyInfo.cs: 95842444B91DE55EB8148C51DD990E93
+HoloBot\Properties\AssemblyInfo.cs: modified
 HoloBot\Properties\Default.rd.xml: 72EB282657164E79A1C42F6240984826

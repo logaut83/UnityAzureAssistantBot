@@ -1,9 +1,6 @@
 ﻿# UnityAzureAssistantBot
-Intégration des services Azure de microsoft dans Unity3D
+Intégration des services Azure de microsoft dans Unity3D version 5.6.0f3
 
-HoloBot connecté au service LUIS
-Speech To text et Text To speech de windows.speech
 
-TO DO:
 
-Intégration de STT et TTS de Bing speech microsoft service
+Audio --> Bing Speech STT ---> LUIS ----> Réponse (string) + Unity action --> Bing Speech TTS ---> Réponse audio Unity

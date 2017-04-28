@@ -126,6 +126,18 @@ public class MicrophoneManager : MonoBehaviour
             audioSources[0].clip = Microphone.Start(deviceName, true, 10, samplingRate);
             cube.GetComponent<Renderer>().material.color = Color.red;
         }
+
+         if (!ttsAudioSrc.isPlaying)
+         {
+             //captionsManager.ToggleKeywordRecognizer(false);
+             if (selectedSource != null)
+             {
+                selectedSource.Play();
+             }
+              //animator.Play("Idle");
+             //StartCoroutine(CoStartRecording());
+        
+         }
     }
 
     void OnGazeLeave()
@@ -184,14 +196,13 @@ public class MicrophoneManager : MonoBehaviour
         JObject luisReturnQuery = JObject.Parse(luisValue);
 
         string luisIntent = luisReturnQuery.SelectToken("intents[0].intent").ToString(); //the accurate intent
-        
 
+        GetAccessTokenBut();
 
         switch (luisIntent) {
 
             case "gestionMenu":
-                result = "Tu es dans la Gestion du menu, je lance la démo numéro une";
-                StartCoroutine(GetAudio());
+                
                 UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                 {
                     // Display captions for the question
@@ -199,20 +210,20 @@ public class MicrophoneManager : MonoBehaviour
                 }, false);
                 //MyTTS.SpeakText(result);
                 cube.GetComponent<Renderer>().material.color = Color.green;
-                if(luisReturnQuery.SelectToken("entities[0]") != null)
+               
+                if (luisReturnQuery.SelectToken("entities[0]") != null)
                 {
-                    string luisEntity = luisReturnQuery.SelectToken("entities[0].type").ToString();
-                    switch (luisEntity)
+                    if(luisReturnQuery.SelectToken("entities[1].type").ToString() == "numDemo")
                     {
-                        case "Start":
-                            string numDemo = luisReturnQuery.SelectToken("entities[1].entity").ToString();
-                            //WindowsVoice.theVoice.speak("I start the demo number" + numDemo);
-                            break;
-                        case "Stop":
-                            //WindowsVoice.theVoice.speak("I stop the demo");
-                            break;
-                       
+                        result = "tu es dans la gestion du menu, je lance la démo numéro " + luisReturnQuery.SelectToken("entities[1].entity").ToString();
                     }
+                    if (luisReturnQuery.SelectToken("entities[0].type").ToString() == "numDemo")
+                    {
+                        result = "tu es dans la gestion du menu, je lance la démo numéro " + luisReturnQuery.SelectToken("entities[1].entity").ToString();
+                    }
+
+                    StartCoroutine(GetAudio());
+
                 }
                 break;
             case "None":
@@ -227,25 +238,9 @@ public class MicrophoneManager : MonoBehaviour
                 //WindowsVoice.theVoice.speak("I don't understand what you are saying");
                 break;
 
-        }
-        //MyTTS.SpeakText(result + " i didn't find anything");
-        if (www.isError)
-        {
-            //Debug.Log("Erreur " + www.error);
 
-            StopAllCoroutines();
         }
-        else
-        {
-            //Show results as text
-            //Debug.Log("Resultat  " + www.downloadHandler.text);
-            /* UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-            {
-                // Display captions for the question
-                captionsManager.SetCaptionsText(www.downloadHandler.text);
-            }, false); */
-            StopAllCoroutines();
-        }
+
     }
 #endif
 
@@ -265,7 +260,7 @@ public class MicrophoneManager : MonoBehaviour
 
     IEnumerator GetAudio()
     {
-        cube.GetComponent<Renderer>().material.color = Color.black;
+        GetAccessTokenBut();
         Dictionary<string, string> headers = new Dictionary<string, string>();
         headers.Add("Content-type", "application/ssml+xml");
         headers.Add("Ocp-Apim-Subscription-Key", apiKey);
@@ -279,16 +274,22 @@ public class MicrophoneManager : MonoBehaviour
 
         Debug.Log("requestData : " + requestData);
 
+        //StopCoroutine(GetText());
+        //StopCoroutine(GetAccessToken());
+        //StopCoroutine(GetTextLuis());
 
         Encoding encode = Encoding.UTF8;
         byte[] unicodeBytes = encode.GetBytes(requestData);
         WWW wwwReq = new WWW(requestUri, unicodeBytes, headers);
-        yield return wwwReq;
-
         Debug.Log(wwwReq.error);
-        ttsAudioSrc.clip = WWWAudioExtensions.GetAudioClip(wwwReq, false, false, AudioType.WAV);
-        ttsAudioSrc.Play();
-
+        yield return wwwReq;
+        cube.GetComponent<Renderer>().material.color = Color.white;
+        Debug.Log("IICII");
+        Debug.Log("erreur " + wwwReq.error);
+        audioSources[0].clip = WWWAudioExtensions.GetAudioClip(wwwReq, false, false, AudioType.WAV);
+        Debug.Log(audioSources[0].clip.loadState);
+        audioSources[0].Play();
+        yield return audioSources[0].clip;
 
 
     }

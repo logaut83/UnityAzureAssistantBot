@@ -57,6 +57,10 @@ public class MicrophoneManager : MonoBehaviour
 
     public string apiKey = "efef3982be3844b5ac6483c8d3a3683d";
 
+    private string local;
+    private string voice;
+    private string gender;
+        
 
     void Awake()
     {
@@ -92,6 +96,15 @@ public class MicrophoneManager : MonoBehaviour
         requestText = "";
         captionsManager.SetCaptionsText("Bienvenue");
         StartCoroutine(GetAccessToken());
+        gender = "Male";
+        local = "fr-FR";
+        voice = "Microsoft Server Speech Text to Speech Voice (fr-FR, Paul, Apollo)";
+        //fr-FR	Male	"Microsoft Server Speech Text to Speech Voice (fr-FR, Paul, Apollo)"
+        //fr-FR	Female	"Microsoft Server Speech Text to Speech Voice (fr-FR, Julie, Apollo)"
+        //en-US	Female	"Microsoft Server Speech Text to Speech Voice (en-US, ZiraRUS)"
+        //en-US	Male	"Microsoft Server Speech Text to Speech Voice (en-US, BenjaminRUS)"
+
+
     }
 
     void Update()
@@ -149,35 +162,7 @@ public class MicrophoneManager : MonoBehaviour
     }
 
 
-    public void OnClicDaButtonHello()
-    {
-        requestText = "hello";
-        cube.GetComponent<Renderer>().material.color = Color.blue;
-#if WINDOWS_UWP
-        StartCoroutine(GetTextLuis());
-#endif
 
-    }
-
-    public void OnClicDaButtonLanceDemo()
-    {
-        requestText = "lance la demo 1";
-        cube.GetComponent<Renderer>().material.color = Color.magenta;
-#if WINDOWS_UWP
-        StartCoroutine(GetTextLuis());
-#endif
-
-    }
-
-    public void OnClicDaButtonNone()
-    {
-        requestText = "oaizudapzpadup";
-        cube.GetComponent<Renderer>().material.color = Color.yellow;
-#if WINDOWS_UWP
-        StartCoroutine(GetTextLuis());
-#endif
-
-    }
 
 #if WINDOWS_UWP
     IEnumerator GetTextLuis()
@@ -195,21 +180,22 @@ public class MicrophoneManager : MonoBehaviour
         luisValue = www.downloadHandler.text;
         JObject luisReturnQuery = JObject.Parse(luisValue);
 
-        string luisIntent = luisReturnQuery.SelectToken("intents[0].intent").ToString(); //the accurate intent
+        Debug.Log(luisReturnQuery.ToString());
 
-        GetAccessTokenBut();
+        string luisIntent = luisReturnQuery.SelectToken("intents[0].intent").ToString(); //the accurate intent
 
         switch (luisIntent) {
 
             case "gestionMenu":
-                
+
+                result = "GEstion Menu";
                 UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                 {
                     // Display captions for the question
-                    captionsManager.SetCaptionsText(result);
+                    captionsManager.SetCaptionsText("GEstion Menu");
                 }, false);
                 //MyTTS.SpeakText(result);
-                cube.GetComponent<Renderer>().material.color = Color.green;
+                
                
                 if (luisReturnQuery.SelectToken("entities[0]") != null)
                 {
@@ -219,7 +205,11 @@ public class MicrophoneManager : MonoBehaviour
                     }
                     if (luisReturnQuery.SelectToken("entities[0].type").ToString() == "numDemo")
                     {
-                        result = "tu es dans la gestion du menu, je lance la démo numéro " + luisReturnQuery.SelectToken("entities[1].entity").ToString();
+                        result = "tu es dans la gestion du menu, je lance la démo numéro " + luisReturnQuery.SelectToken("entities[0].entity").ToString();
+                    }
+                    else 
+                    {
+                        result = " je lance la démo";
                     }
 
                     StartCoroutine(GetAudio());
@@ -236,6 +226,24 @@ public class MicrophoneManager : MonoBehaviour
                 cube.GetComponent<Renderer>().material.color = Color.red;
                 //MyTTS.SpeakText(result);
                 //WindowsVoice.theVoice.speak("I don't understand what you are saying");
+                break;
+            case "GestionVoix":
+                if (gender == "Male")
+                {
+                    gender = "Female";
+                    voice = "Microsoft Server Speech Text to Speech Voice (fr-FR, Julie, Apollo)";
+                    result = "Je suis une femme maintenant.";
+                    captionsManager.SetCaptionsText(result);
+                    StartCoroutine(GetAudio());
+                }
+                else
+                {
+                    gender = "Male";
+                    voice = "Microsoft Server Speech Text to Speech Voice (fr-FR, Paul, Apollo)";
+                    result = "Je suis un homme maintenant";
+                    captionsManager.SetCaptionsText(result);
+                    StartCoroutine(GetAudio());
+                }
                 break;
 
 
@@ -260,7 +268,6 @@ public class MicrophoneManager : MonoBehaviour
 
     IEnumerator GetAudio()
     {
-        GetAccessTokenBut();
         Dictionary<string, string> headers = new Dictionary<string, string>();
         headers.Add("Content-type", "application/ssml+xml");
         headers.Add("Ocp-Apim-Subscription-Key", apiKey);
@@ -270,7 +277,7 @@ public class MicrophoneManager : MonoBehaviour
         headers.Add("X-Search-ClientID", "1ECFAE91408841A480F00935DC390960");
         headers.Add("User-Agent", "BingSpeechDemo");
 
-        requestData = GenerateSsml("fr-FR", "Male", "Microsoft Server Speech Text to Speech Voice (fr-FR, Paul, Apollo)", result);
+        requestData = GenerateSsml(local, gender, voice, result);
 
         Debug.Log("requestData : " + requestData);
 
@@ -376,14 +383,33 @@ public class MicrophoneManager : MonoBehaviour
         StartCoroutine(GetAccessToken());
     }
 
-    public void GetAudioClip()
+    public void BotSpeakOne()
     {
+        result = "Bonjour, je suis l'assistant holographique";
+        StartCoroutine(GetAudio());
+    }
+    public void BotSpeakTwo()
+    {
+        result = "Sélectionnez un menue";
         StartCoroutine(GetAudio());
     }
 
     public void GetTextSTT()
     {
         StartCoroutine(GetText());
+    }
+
+    public void StopAllCor()
+    {
+        StopAllCoroutines();
+    }
+
+    public void ChangeSex()
+    {
+        requestText = "Change de sex";
+#if WINDOWS_UWP
+        StartCoroutine(GetTextLuis());
+#endif
     }
 
 }
